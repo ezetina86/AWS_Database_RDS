@@ -140,3 +140,23 @@ output "efs_mount_targets" {
     }
   }
 }
+
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = aws_lb.ghost.dns_name
+}
+
+output "alb_zone_id" {
+  description = "Zone ID of the Application Load Balancer"
+  value       = aws_lb.ghost.zone_id
+}
+
+output "target_group_arn" {
+  description = "ARN of the Ghost EC2 target group"
+  value       = aws_lb_target_group.ghost_ec2.arn
+}
+
+output "alb_arn" {
+  description = "ARN of the Application Load Balancer"
+  value       = aws_lb.ghost.arn
+}
