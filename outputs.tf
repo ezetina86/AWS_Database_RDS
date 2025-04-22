@@ -112,3 +112,31 @@ output "ghost_app_instance_profile_name" {
   description = "Name of the Ghost application instance profile"
   value       = aws_iam_instance_profile.ghost_app.name
 }
+
+output "efs_id" {
+  description = "ID of the EFS file system"
+  value       = aws_efs_file_system.ghost_content.id
+}
+
+output "efs_dns_name" {
+  description = "DNS name of the EFS file system"
+  value       = aws_efs_file_system.ghost_content.dns_name
+}
+
+output "efs_mount_targets" {
+  description = "Mount target IDs and IPs"
+  value = {
+    az_a = {
+      id = aws_efs_mount_target.az_a.id
+      ip = aws_efs_mount_target.az_a.ip_address
+    }
+    az_b = {
+      id = aws_efs_mount_target.az_b.id
+      ip = aws_efs_mount_target.az_b.ip_address
+    }
+    az_c = {
+      id = aws_efs_mount_target.az_c.id
+      ip = aws_efs_mount_target.az_c.ip_address
+    }
+  }
+}
