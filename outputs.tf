@@ -22,10 +22,6 @@ output "public_route_table_id" {
   value       = aws_route_table.public_rt.id
 }
 
-output "vpc_id" {
-  value = aws_vpc.main.id
-}
-
 output "private_db_subnet_ids" {
   value = [
     aws_subnet.private_db_a.id,
@@ -100,4 +96,19 @@ output "key_pair_name" {
 
 output "private_key_path" {
   value = local_file.private_key.filename
+}
+
+output "ghost_app_role_arn" {
+  description = "ARN of the Ghost application IAM role"
+  value       = aws_iam_role.ghost_app.arn
+}
+
+output "ghost_app_instance_profile_arn" {
+  description = "ARN of the Ghost application instance profile"
+  value       = aws_iam_instance_profile.ghost_app.arn
+}
+
+output "ghost_app_instance_profile_name" {
+  description = "Name of the Ghost application instance profile"
+  value       = aws_iam_instance_profile.ghost_app.name
 }

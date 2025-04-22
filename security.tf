@@ -44,7 +44,6 @@ resource "aws_db_subnet_group" "ghost" {
   tags = {
     Name = "${var.environment}-ghost-db-subnet-group"
   }
-
 }
 
 #######################

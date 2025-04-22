@@ -66,3 +66,60 @@ resource "aws_iam_instance_profile" "ec2_profile" {
   name = "EC2SSMParameterStoreAccess"
   role = aws_iam_role.ec2_role.name
 }
+
+# IAM Role
+resource "aws_iam_role" "ghost_app" {
+  name = "ghost_app"
+
+  # Trust relationship policy allowing EC2 to assume this role
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "ghost_app"
+  }
+}
+
+# IAM Policy
+resource "aws_iam_policy" "ghost_app" {
+  name        = "ghost_app_policy"
+  description = "Policy for Ghost application EC2 instances"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:Describe*",
+          "elasticfilesystem:DescribeFileSystems",
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach the policy to the role
+resource "aws_iam_role_policy_attachment" "ghost_app" {
+  policy_arn = aws_iam_policy.ghost_app.arn
+  role       = aws_iam_role.ghost_app.name
+}
+
+# Create instance profile
+resource "aws_iam_instance_profile" "ghost_app" {
+  name = "ghost_app"
+  role = aws_iam_role.ghost_app.name
+}
