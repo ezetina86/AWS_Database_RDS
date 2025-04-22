@@ -1,3 +1,27 @@
+output "vpc_id_x" {
+  description = "The ID of the VPC"
+  value       = aws_vpc.cloudx.id
+}
+
+output "public_subnet_ids" {
+  description = "List of public subnet IDs"
+  value = [
+    aws_subnet.public_a.id,
+    aws_subnet.public_b.id,
+    aws_subnet.public_c.id
+  ]
+}
+
+output "vpc_cidr" {
+  description = "The CIDR block of the VPC"
+  value       = aws_vpc.cloudx.cidr_block
+}
+
+output "public_route_table_id" {
+  description = "The ID of the public route table"
+  value       = aws_route_table.public_rt.id
+}
+
 output "vpc_id" {
   value = aws_vpc.main.id
 }
