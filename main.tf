@@ -103,3 +103,139 @@ resource "aws_security_group" "mysql" {
     Name = "${var.environment}-mysql"
   }
 }
+
+# DB Subnet Group
+resource "aws_db_subnet_group" "ghost" {
+  name        = "ghost"
+  description = "Ghost database subnet group"
+  subnet_ids = [
+    aws_subnet.private_db_a.id,
+    aws_subnet.private_db_b.id,
+    aws_subnet.private_db_c.id
+  ]
+
+  tags = {
+    Name = "${var.environment}-ghost-db-subnet-group"
+  }
+}
+
+# RDS MySQL Instance
+resource "aws_db_instance" "ghost" {
+  identifier        = "ghost"
+  engine            = "mysql"
+  engine_version    = "8.0"
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
+  storage_type      = "gp2"
+
+  # Database credentials
+  username = var.db_username
+  password = random_password.db_password.result
+
+  # Network & Security
+  db_subnet_group_name   = aws_db_subnet_group.ghost.name
+  vpc_security_group_ids = [aws_security_group.mysql.id]
+
+  # Database configuration
+  db_name              = "ghostdb"
+  parameter_group_name = "default.mysql8.0"
+
+  # Backup and maintenance
+  backup_retention_period = 7
+  skip_final_snapshot     = true # Set to false in production
+
+  # Enable deletion protection in production
+  deletion_protection = false
+
+  tags = {
+    Name = "${var.environment}-ghost-db"
+  }
+}
+
+# Generate random password
+resource "random_password" "db_password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+# Store password in SSM Parameter Store
+resource "aws_ssm_parameter" "db_password" {
+  name        = "/ghost/dbpassw"
+  description = "Ghost database password"
+  type        = "SecureString"
+  value       = random_password.db_password.result
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+# Create IAM Policy for SSM Parameter Store access
+resource "aws_iam_policy" "ssm_access" {
+  name        = "SSMParameterStoreAccess"
+  description = "Allows access to SSM Parameter Store, Secrets Manager, and KMS decrypt"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter*"
+        ]
+        Resource = [
+          "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/ghost/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          "arn:aws:secretsmanager:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:secret:ghost/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Add these data sources at the top of your configuration
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
+# Create IAM Role
+resource "aws_iam_role" "ec2_role" {
+  name = "EC2SSMParameterStoreAccess"
+
+  # Trust relationship policy allowing EC2 to assume this role
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.environment}-ec2-ssm-role"
+  }
+}
+
+# Attach the policy to the role
+resource "aws_iam_role_policy_attachment" "ssm_policy_attachment" {
+  policy_arn = aws_iam_policy.ssm_access.arn
+  role       = aws_iam_role.ec2_role.name
+}
+
+# Create an instance profile
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "EC2SSMParameterStoreAccess"
+  role = aws_iam_role.ec2_role.name
+}

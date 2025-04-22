@@ -21,3 +21,31 @@ output "mysql_security_group_id" {
 output "ec2_pool_security_group_id" {
   value = aws_security_group.ec2_pool.id
 }
+
+output "db_subnet_group_name" {
+  value = aws_db_subnet_group.ghost.name
+}
+
+output "rds_endpoint" {
+  value = aws_db_instance.ghost.endpoint
+}
+
+output "rds_port" {
+  value = aws_db_instance.ghost.port
+}
+
+output "ssm_parameter_name" {
+  value = aws_ssm_parameter.db_password.name
+}
+
+output "iam_role_arn" {
+  value = aws_iam_role.ec2_role.arn
+}
+
+output "iam_role_name" {
+  value = aws_iam_role.ec2_role.name
+}
+
+output "instance_profile_name" {
+  value = aws_iam_instance_profile.ec2_profile.name
+}

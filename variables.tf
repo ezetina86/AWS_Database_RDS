@@ -9,3 +9,9 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+variable "db_username" {
+  description = "Database administrator username"
+  type        = string
+  default     = "admin"
+}
