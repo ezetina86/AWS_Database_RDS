@@ -93,3 +93,11 @@ output "efs_sg_id" {
   description = "The ID of the EFS security group"
   value       = aws_security_group.efs.id
 }
+
+output "key_pair_name" {
+  value = aws_key_pair.ghost.key_name
+}
+
+output "private_key_path" {
+  value = local_file.private_key.filename
+}

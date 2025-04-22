@@ -31,3 +31,9 @@ variable "db_username" {
   type        = string
   default     = "admin"
 }
+
+variable "ssh_key_name" {
+  description = "Name of the SSH key pair"
+  type        = string
+  default     = "ghost-ec2-pool"
+}
