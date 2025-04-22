@@ -14,6 +14,12 @@ variable "public_subnet_cidrs" {
   }
 }
 
+variable "allowed_ip" {
+  description = "Your IP address for access"
+  type        = string
+  # default = "YOUR_IP/32"  # Replace with your IP or set via terraform.tfvars
+}
+
 variable "environment" {
   description = "Environment name"
   type        = string

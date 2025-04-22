@@ -73,3 +73,23 @@ output "iam_role_name" {
 output "instance_profile_name" {
   value = aws_iam_instance_profile.ec2_profile.name
 }
+
+output "bastion_sg_id" {
+  description = "The ID of the bastion security group"
+  value       = aws_security_group.bastion.id
+}
+
+output "ec2_pool_sg_id" {
+  description = "The ID of the EC2 pool security group"
+  value       = aws_security_group.ec2_pool.id
+}
+
+output "alb_sg_id" {
+  description = "The ID of the ALB security group"
+  value       = aws_security_group.alb.id
+}
+
+output "efs_sg_id" {
+  description = "The ID of the EFS security group"
+  value       = aws_security_group.efs.id
+}

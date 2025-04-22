@@ -106,7 +106,7 @@ resource "aws_vpc" "main" {
 
 # Create Database Subnets
 resource "aws_subnet" "private_db_a" {
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = aws_vpc.cloudx.id
   cidr_block        = "10.10.20.0/24"
   availability_zone = "us-east-2a"
 
