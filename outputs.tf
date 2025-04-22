@@ -160,3 +160,23 @@ output "alb_arn" {
   description = "ARN of the Application Load Balancer"
   value       = aws_lb.ghost.arn
 }
+
+output "launch_template_id" {
+  description = "ID of the Launch Template"
+  value       = aws_launch_template.ghost.id
+}
+
+output "launch_template_latest_version" {
+  description = "Latest version of the Launch Template"
+  value       = aws_launch_template.ghost.latest_version
+}
+
+output "instance_id" {
+  description = "ID of the Ghost EC2 instance"
+  value       = aws_instance.ghost.id
+}
+
+output "instance_public_ip" {
+  description = "Public IP of the Ghost EC2 instance"
+  value       = aws_instance.ghost.public_ip
+}
