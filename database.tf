@@ -29,5 +29,5 @@ resource "aws_db_instance" "ghost" {
   tags = {
     Name = "${var.environment}-ghost-db"
   }
-  
+
 }

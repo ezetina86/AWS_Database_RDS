@@ -118,7 +118,7 @@ resource "aws_instance" "ghost" {
     version = "$Latest"
   }
 
-  subnet_id = aws_subnet.public_a.id  # You might want to use a private subnet in production
+  subnet_id = aws_subnet.public_a.id # You might want to use a private subnet in production
 
   tags = {
     Name = "ghost-instance"
