@@ -15,73 +15,80 @@ resource "aws_launch_template" "ghost" {
   }
 
   key_name = aws_key_pair.ghost.key_name
+
+  # Add IMDSv2 settings
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "optional"  # Set to optional as recommended
+    http_put_response_hop_limit = 2
+  }
+
+
   user_data = base64encode(<<-EOF
 #!/bin/bash -xe
+
 exec > >(tee /var/log/cloud-init-output.log|logger -t user-data -s 2>/dev/console) 2>&1
 
 # Set variables
 LB_DNS_NAME='${aws_lb.ghost.dns_name}'
-SSM_DB_PASSWORD="/ghost/dbpassw"
 REGION=$(/usr/bin/curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/[a-z]$//')
-
-# Add retry logic for SSM parameter
-MAX_RETRIES=5
-RETRY_DELAY=10
-for i in $(seq 1 $MAX_RETRIES); do
-    echo "Attempting to get SSM parameter (attempt $i of $MAX_RETRIES)"
-    DB_PASSWORD=$(aws ssm get-parameter --name $SSM_DB_PASSWORD --query Parameter.Value --with-decryption --region $REGION --output text)
-    if [ $? -eq 0 ] && [ ! -z "$DB_PASSWORD" ]; then
-        break
-    fi
-    sleep $RETRY_DELAY
-done
-
-if [ -z "$DB_PASSWORD" ]; then
-    echo "Failed to retrieve database password from SSM"
-    exit 1
-fi
-
-DB_URL="${aws_db_instance.ghost.endpoint}"
-DB_USER="${var.db_username}"
-DB_NAME="ghostdb"
 EFS_ID=$(aws efs describe-file-systems --query 'FileSystems[?Name==`ghost_content`].FileSystemId' --region $REGION --output text)
 
-# Install prerequisites
-curl -sL https://rpm.nodesource.com/setup_14.x | sudo bash -
-yum install -y nodejs amazon-efs-utils mysql
-npm install ghost-cli@latest -g
+echo "EFS_ID: $EFS_ID"
+echo "REGION: $REGION"
 
-# Create and configure ghost user
-adduser ghost_user
-usermod -aG wheel ghost_user
-cd /home/ghost_user/
+### Install pre-reqs
+echo "Installing node js..."
+curl -sL https://rpm.nodesource.com/setup_18.x | sudo bash -
+sudo yum install -y nodejs
+echo "Installing amazon-efs-utils and ghost-cli..."
+sudo yum install -y amazon-efs-utils
+sudo npm install -g ghost-cli@latest
 
-# Mount EFS first
-mkdir -p /home/ghost_user/ghost/content
+### Add ghost_user
+if ! id "ghost_user" &>/dev/null; then
+    echo "Adding user ghost_user"
+    adduser ghost_user
+    usermod -aG wheel ghost_user
+else
+    echo "User ghost_user already exists. Skipping user creation."
+fi
+
+# Create the directory and set ownership
+if [ ! -d "/home/ghost_user/ghost" ]; then
+    echo "Creating ghost folder"
+    sudo mkdir -p /home/ghost_user/ghost
+    sudo chown -R ghost_user:ghost_user /home/ghost_user/ghost
+else
+    echo "Folder already exists. Skipping ghost folder creation."
+fi
+
+# Switch to ghost_user and proceed
+echo "Installing ghost..."
+sudo su - ghost_user -c "cd /home/ghost_user/ghost && ghost install --version 5 local"
+
+### EFS mount
+echo "Mounting efs..."
+echo "EFS_ID: $EFS_ID"
+mkdir -p /home/ghost_user/ghost/content/data
 mount -t efs -o tls $EFS_ID:/ /home/ghost_user/ghost/content
 
-# Add EFS mount to fstab for persistence
-echo "$EFS_ID:/ /home/ghost_user/ghost/content efs _netdev,tls 0 0" >> /etc/fstab
+echo "Setting permissions..."
+chown -R ghost_user:ghost_user /home/ghost_user/ghost/content
+sudo chmod -R u+rwX /home/ghost_user/ghost/content
 
-# Install Ghost
-sudo -u ghost_user ghost install local
-
-# Create Ghost config
-cat > /home/ghost_user/ghost/config.production.json << 'ENDCONFIG'
+echo "Creating config.development.json"
+cat > /home/ghost_user/ghost/config.development.json << 'CONFIGEND'
 {
-  "url": "http://$LB_DNS_NAME",
+  "url": "http://${aws_lb.ghost.dns_name}",
   "server": {
     "port": 2368,
     "host": "0.0.0.0"
   },
   "database": {
-    "client": "mysql",
+    "client": "sqlite3",
     "connection": {
-      "host": "$DB_URL",
-      "port": 3306,
-      "user": "$DB_USER",
-      "password": "$DB_PASSWORD",
-      "database": "$DB_NAME"
+      "filename": "/home/ghost_user/ghost/content/data/ghost-local.db"
     }
   },
   "mail": {
@@ -93,44 +100,21 @@ cat > /home/ghost_user/ghost/config.production.json << 'ENDCONFIG'
       "stdout"
     ]
   },
-  "process": "systemd",
+  "process": "local",
   "paths": {
     "contentPath": "/home/ghost_user/ghost/content"
   }
 }
-ENDCONFIG
+CONFIGEND
 
-# Set proper ownership
-chown -R ghost_user:ghost_user /home/ghost_user/ghost
+# Ensure ghost commands are executed in the correct directory
+echo "Stopping Ghost..."
+sudo -u ghost_user bash -c "cd /home/ghost_user/ghost && ghost stop"
 
-# Create systemd service file
-cat > /etc/systemd/system/ghost_ghost.service << 'ENDSERVICE'
-[Unit]
-Description=Ghost Blog
-After=network.target
+echo "Starting Ghost..."
+sudo -u ghost_user bash -c "cd /home/ghost_user/ghost && ghost start"
 
-[Service]
-Type=simple
-WorkingDirectory=/home/ghost_user/ghost
-User=ghost_user
-Environment="NODE_ENV=production"
-ExecStart=/usr/bin/node current/index.js
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-ENDSERVICE
-
-# Start Ghost
-systemctl daemon-reload
-systemctl enable ghost_ghost
-systemctl start ghost_ghost
-
-# Wait for Ghost to start
-sleep 30
-
-# Verify Ghost is running
-curl -v http://localhost:2368
+echo "Installation complete!"
 EOF
   )
 
