@@ -2,7 +2,7 @@
 # Bastion Host
 #######################
 resource "aws_instance" "bastion" {
-  ami                         = data.aws_ami.amazon_linux_2.id
+  ami                         = data.aws_ami.amazon_linux_2023.id
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.public_a.id
   vpc_security_group_ids      = [aws_security_group.bastion.id]

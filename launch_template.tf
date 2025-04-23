@@ -7,7 +7,7 @@ resource "random_string" "launch_template_suffix" {
 resource "aws_launch_template" "ghost" {
   name                   = "ghost-${random_string.launch_template_suffix.result}"
   instance_type          = "t2.micro"
-  image_id               = data.aws_ami.amazon_linux_2.id
+  image_id               = data.aws_ami.amazon_linux_2023.id
   vpc_security_group_ids = [aws_security_group.ec2_pool.id]
 
   iam_instance_profile {
@@ -19,7 +19,7 @@ resource "aws_launch_template" "ghost" {
   # Add IMDSv2 settings
   metadata_options {
     http_endpoint               = "enabled"
-    http_tokens                 = "optional"  # Set to optional as recommended
+    http_tokens                 = "optional" # Set to optional as recommended
     http_put_response_hop_limit = 2
   }
 
