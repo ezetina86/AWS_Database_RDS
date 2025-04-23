@@ -104,7 +104,10 @@ resource "aws_iam_policy" "ghost_app" {
           "ec2:Describe*",
           "elasticfilesystem:DescribeFileSystems",
           "elasticfilesystem:ClientMount",
-          "elasticfilesystem:ClientWrite"
+          "elasticfilesystem:ClientWrite",
+          "ssm:GetParameter*",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath"
         ]
         Resource = "*"
       }

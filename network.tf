@@ -144,3 +144,53 @@ resource "aws_route_table_association" "private_db_c" {
   subnet_id      = aws_subnet.private_db_c.id
   route_table_id = aws_route_table.private_rt.id
 }
+
+
+# SSM VPC Endpoints
+resource "aws_vpc_endpoint" "ssm" {
+  vpc_id              = aws_vpc.cloudx.id
+  service_name        = "com.amazonaws.us-east-2.ssm"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [aws_subnet.private_db_a.id, aws_subnet.private_db_b.id, aws_subnet.private_db_c.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+}
+
+resource "aws_vpc_endpoint" "ssmmessages" {
+  vpc_id              = aws_vpc.cloudx.id
+  service_name        = "com.amazonaws.us-east-2.ssmmessages"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [aws_subnet.private_db_a.id, aws_subnet.private_db_b.id, aws_subnet.private_db_c.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+}
+
+resource "aws_vpc_endpoint" "ec2messages" {
+  vpc_id              = aws_vpc.cloudx.id
+  service_name        = "com.amazonaws.us-east-2.ec2messages"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = [aws_subnet.private_db_a.id, aws_subnet.private_db_b.id, aws_subnet.private_db_c.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+}
+
+# Security group for VPC endpoints
+resource "aws_security_group" "vpc_endpoints" {
+  name        = "vpc-endpoints"
+  description = "Security group for VPC endpoints"
+  vpc_id      = aws_vpc.cloudx.id
+
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2_pool.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
