@@ -118,6 +118,14 @@ resource "aws_security_group" "ec2_pool" {
     security_groups = [aws_security_group.bastion.id]
   }
 
+  ingress {
+    description     = "Ghost app port from ALB"
+    from_port       = 2368
+    to_port         = 2368
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
   # NFS access from VPC
   ingress {
     description = "NFS from VPC"
@@ -183,12 +191,3 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# Add these separate security group rules after the security groups are created
-resource "aws_security_group_rule" "ec2_pool_from_alb" {
-  type                     = "ingress"
-  from_port                = 2368
-  to_port                  = 2368
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.alb.id
-  security_group_id        = aws_security_group.ec2_pool.id
-}

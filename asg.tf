@@ -8,9 +8,9 @@ resource "aws_autoscaling_group" "ghost_ec2_pool" {
   min_size          = 1
   target_group_arns = [aws_lb_target_group.ghost_ec2.arn]
   vpc_zone_identifier = [
-    aws_subnet.public_a.id,
-    aws_subnet.public_b.id,
-    aws_subnet.public_c.id
+    aws_subnet.private_db_a.id,
+    aws_subnet.private_db_b.id,
+    aws_subnet.private_db_c.id
   ]
 
   launch_template {

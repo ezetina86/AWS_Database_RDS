@@ -171,16 +171,6 @@ output "launch_template_latest_version" {
   value       = aws_launch_template.ghost.latest_version
 }
 
-output "instance_id" {
-  description = "ID of the Ghost EC2 instance"
-  value       = aws_instance.ghost.id
-}
-
-output "instance_public_ip" {
-  description = "Public IP of the Ghost EC2 instance"
-  value       = aws_instance.ghost.public_ip
-}
-
 output "bastion_public_ip" {
   description = "Public IP of the bastion host"
   value       = aws_instance.bastion.public_ip
@@ -189,4 +179,14 @@ output "bastion_public_ip" {
 output "bastion_public_dns" {
   description = "Public DNS of the bastion host"
   value       = aws_instance.bastion.public_dns
+}
+
+output "asg_name" {
+  description = "Name of the Auto Scaling Group"
+  value       = aws_autoscaling_group.ghost_ec2_pool.name
+}
+
+output "asg_arn" {
+  description = "ARN of the Auto Scaling Group"
+  value       = aws_autoscaling_group.ghost_ec2_pool.arn
 }

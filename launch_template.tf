@@ -1,10 +1,7 @@
-#######################
-# Launch Template
-#######################
 resource "aws_launch_template" "ghost" {
   name                   = "ghost"
-  image_id               = data.aws_ami.amazon_linux_2.id
   instance_type          = "t2.micro"
+   image_id               = data.aws_ami.amazon_linux_2.id
   vpc_security_group_ids = [aws_security_group.ec2_pool.id]
 
   iam_instance_profile {
@@ -17,31 +14,40 @@ resource "aws_launch_template" "ghost" {
 #!/bin/bash -xe
 exec > >(tee /var/log/cloud-init-output.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-### Update this to match your ALB DNS name
+# Set variables
 LB_DNS_NAME='${aws_lb.ghost.dns_name}'
-###
-
+SSM_DB_PASSWORD="/ghost/dbpassw"
 REGION=$(/usr/bin/curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/[a-z]$//')
+DB_PASSWORD=$(aws ssm get-parameter --name $SSM_DB_PASSWORD --query Parameter.Value --with-decryption --region $REGION --output text)
+DB_URL="${aws_db_instance.ghost.endpoint}"
+DB_USER="${var.db_username}"
+DB_NAME="ghostdb"
 EFS_ID=$(aws efs describe-file-systems --query 'FileSystems[?Name==`ghost_content`].FileSystemId' --region $REGION --output text)
 
-### Install pre-reqs
+# Install prerequisites
 curl -sL https://rpm.nodesource.com/setup_14.x | sudo bash -
 yum install -y nodejs amazon-efs-utils
 npm install ghost-cli@latest -g
 
+# Create and configure ghost user
 adduser ghost_user
 usermod -aG wheel ghost_user
 cd /home/ghost_user/
 
+# Install Ghost
 sudo -u ghost_user ghost install local
 
-### EFS mount
+# Mount EFS
 mkdir -p /home/ghost_user/ghost/content/data
 mount -t efs -o tls $EFS_ID:/ /home/ghost_user/ghost/content
 
-cat << 'EOT' > /home/ghost_user/ghost/config.production.json
+# Add EFS mount to fstab for persistence
+echo "$EFS_ID:/ /home/ghost_user/ghost/content efs _netdev,tls 0 0" >> /etc/fstab
+
+# Create Ghost config
+cat << 'GHOST_CONFIG' > /home/ghost_user/ghost/config.production.json
 {
-  "url": "http://${aws_lb.ghost.dns_name}",
+  "url": "http://$LB_DNS_NAME",
   "server": {
     "port": 2368,
     "host": "0.0.0.0"
@@ -49,11 +55,11 @@ cat << 'EOT' > /home/ghost_user/ghost/config.production.json
   "database": {
     "client": "mysql",
     "connection": {
-      "host": "${aws_db_instance.ghost.endpoint}",
+      "host": "$DB_URL",
       "port": 3306,
-      "user": "${var.db_username}",
-      "password": "${random_password.db_password.result}",
-      "database": "ghostdb"
+      "user": "$DB_USER",
+      "password": "$DB_PASSWORD",
+      "database": "$DB_NAME"
     }
   },
   "mail": {
@@ -70,10 +76,12 @@ cat << 'EOT' > /home/ghost_user/ghost/config.production.json
     "contentPath": "/home/ghost_user/ghost/content"
   }
 }
-EOT
+GHOST_CONFIG
 
-chown ghost_user:ghost_user -R /home/ghost_user/ghost
+# Set proper ownership
+chown -R ghost_user:ghost_user /home/ghost_user/ghost
 
+# Restart Ghost
 sudo -u ghost_user ghost stop
 sudo -u ghost_user ghost start
 
@@ -89,45 +97,4 @@ EOF
   lifecycle {
     create_before_destroy = true
   }
-}
-
-#######################
-# Data Source for Amazon Linux 2 AMI
-#######################
-data "aws_ami" "amazon_linux_2" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-#######################
-# Single EC2 Instance
-#######################
-resource "aws_instance" "ghost" {
-  launch_template {
-    id      = aws_launch_template.ghost.id
-    version = "$Latest"
-  }
-
-  subnet_id = aws_subnet.public_a.id # You might want to use a private subnet in production
-
-  tags = {
-    Name = "ghost-instance"
-  }
-}
-
-# Register the instance with the target group
-resource "aws_lb_target_group_attachment" "ghost" {
-  target_group_arn = aws_lb_target_group.ghost_ec2.arn
-  target_id        = aws_instance.ghost.id
-  port             = 2368
 }
