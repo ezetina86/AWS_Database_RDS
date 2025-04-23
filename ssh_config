@@ -1,0 +1,15 @@
+# Ghost Bastion SSH Configuration
+Host bastion
+    HostName 3.137.190.238
+    User ec2-user
+    IdentityFile ./ghost-ec2-pool.pem
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+# Ghost EC2 instances via Bastion
+Host 10.10.*.*
+    User ec2-user
+    IdentityFile ./ghost-ec2-pool.pem
+    ProxyCommand ssh bastion -W %h:%p
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
