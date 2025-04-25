@@ -190,3 +190,33 @@ output "asg_arn" {
   description = "ARN of the Auto Scaling Group"
   value       = aws_autoscaling_group.ghost_ec2_pool.arn
 }
+
+# Output the repository URL
+output "repository_url" {
+  value = aws_ecr_repository.ghost.repository_url
+}
+
+output "ecs_role_arn" {
+  description = "ARN of the ECS task execution role"
+  value       = aws_iam_role.ghost_ecs.arn
+}
+
+output "ecs_role_name" {
+  description = "Name of the ECS task execution role"
+  value       = aws_iam_role.ghost_ecs.name
+}
+
+output "ecs_cluster_id" {
+  description = "ID of the ECS cluster"
+  value       = aws_ecs_cluster.ghost.id
+}
+
+output "ecs_task_definition_arn" {
+  description = "ARN of the ECS task definition"
+  value       = aws_ecs_task_definition.ghost.arn
+}
+
+output "ecs_service_name" {
+  description = "Name of the ECS service"
+  value       = aws_ecs_service.ghost.name
+}

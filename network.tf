@@ -151,7 +151,11 @@ resource "aws_vpc_endpoint" "ssm" {
   vpc_id              = aws_vpc.cloudx.id
   service_name        = "com.amazonaws.us-east-2.ssm"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private_db_a.id, aws_subnet.private_db_b.id, aws_subnet.private_db_c.id]
+  subnet_ids = [
+    aws_subnet.private_a.id,
+    aws_subnet.private_b.id,
+    aws_subnet.private_c.id
+  ]
   security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
 }
@@ -160,7 +164,11 @@ resource "aws_vpc_endpoint" "ssmmessages" {
   vpc_id              = aws_vpc.cloudx.id
   service_name        = "com.amazonaws.us-east-2.ssmmessages"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private_db_a.id, aws_subnet.private_db_b.id, aws_subnet.private_db_c.id]
+  subnet_ids = [
+    aws_subnet.private_a.id,
+    aws_subnet.private_b.id,
+    aws_subnet.private_c.id
+  ]
   security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
 }
@@ -169,7 +177,11 @@ resource "aws_vpc_endpoint" "ec2messages" {
   vpc_id              = aws_vpc.cloudx.id
   service_name        = "com.amazonaws.us-east-2.ec2messages"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private_db_a.id, aws_subnet.private_db_b.id, aws_subnet.private_db_c.id]
+  subnet_ids = [
+    aws_subnet.private_a.id,
+    aws_subnet.private_b.id,
+    aws_subnet.private_c.id
+  ]
   security_group_ids  = [aws_security_group.vpc_endpoints.id]
   private_dns_enabled = true
 }
@@ -193,4 +205,53 @@ resource "aws_security_group" "vpc_endpoints" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
+
+#######################
+# Private ECS Subnets
+#######################
+resource "aws_subnet" "private_a" {
+  vpc_id            = aws_vpc.cloudx.id
+  cidr_block        = "10.10.10.0/24"
+  availability_zone = "${data.aws_region.current.name}a"
+
+  tags = {
+    Name = "private_a"
+  }
+}
+
+resource "aws_subnet" "private_b" {
+  vpc_id            = aws_vpc.cloudx.id
+  cidr_block        = "10.10.11.0/24"
+  availability_zone = "${data.aws_region.current.name}b"
+
+  tags = {
+    Name = "private_b"
+  }
+}
+
+resource "aws_subnet" "private_c" {
+  vpc_id            = aws_vpc.cloudx.id
+  cidr_block        = "10.10.12.0/24"
+  availability_zone = "${data.aws_region.current.name}c"
+
+  tags = {
+    Name = "private_c"
+  }
+}
+
+# Add route table associations for ECS private subnets
+resource "aws_route_table_association" "private_a" {
+  subnet_id      = aws_subnet.private_a.id
+  route_table_id = aws_route_table.private_rt.id
+}
+
+resource "aws_route_table_association" "private_b" {
+  subnet_id      = aws_subnet.private_b.id
+  route_table_id = aws_route_table.private_rt.id
+}
+
+resource "aws_route_table_association" "private_c" {
+  subnet_id      = aws_subnet.private_c.id
+  route_table_id = aws_route_table.private_rt.id
 }

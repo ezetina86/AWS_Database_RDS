@@ -1,6 +1,6 @@
 # Ghost Bastion SSH Configuration
 Host bastion
-    HostName 3.137.190.238
+    HostName 3.145.45.18
     User ec2-user
     IdentityFile ./ghost-ec2-pool.pem
     StrictHostKeyChecking no
